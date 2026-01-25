@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace background_app
@@ -43,7 +40,11 @@ namespace background_app
             {
                 if (mutex != null)
                 {
-                    mutex.ReleaseMutex();
+                    // 自分が Mutex を新規作成（所有）した時だけ解放する
+                    if (createdNew)
+                    {
+                        mutex.ReleaseMutex();
+                    }
                     mutex.Dispose();
                 }
             }
