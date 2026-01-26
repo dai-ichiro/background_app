@@ -65,6 +65,7 @@ namespace background_app
                 if (string.IsNullOrEmpty(portNumber))
                 {
                     MessageBox.Show("COM portを指定して下さい", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Application.Exit();
                     return;
                 }
 
