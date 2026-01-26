@@ -257,7 +257,9 @@ namespace background_app
                 {
                     using (FileStream fs = new FileStream(configPath, FileMode.Open))
                     {
-                        var serializer = new DataContractJsonSerializer(typeof(Dictionary<string, List<ActionStep>>));
+                        var settings = new DataContractJsonSerializerSettings();
+                        settings.UseSimpleDictionaryFormat = true;
+                        var serializer = new DataContractJsonSerializer(typeof(Dictionary<string, List<ActionStep>>), settings);
                         _keyConfig = (Dictionary<string, List<ActionStep>>)serializer.ReadObject(fs);
                         Log($"Config loaded successfully. Keys: {string.Join(", ", _keyConfig.Keys)}");
                     }
