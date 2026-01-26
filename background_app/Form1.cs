@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.IO.Ports;
 using System.Windows.Forms;
 
@@ -47,8 +48,29 @@ namespace background_app
         {
             try
             {
+                string exePath = AppDomain.CurrentDomain.BaseDirectory;
+                string comportFilePath = Path.Combine(exePath, "comport.txt");
+                string portNumber = "";
+
+                if (File.Exists(comportFilePath))
+                {
+                    string content = File.ReadAllText(comportFilePath).Trim();
+                    int num;
+                    if (int.TryParse(content, out num))
+                    {
+                        portNumber = content;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(portNumber))
+                {
+                    MessageBox.Show("COM portを指定して下さい", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Application.Exit();
+                    return;
+                }
+
                 _serialPort = new SerialPort();
-                _serialPort.PortName = "COM3";
+                _serialPort.PortName = "COM" + portNumber;
                 _serialPort.BaudRate = 9600;
                 // Python側 (main.py) の設定に合わせて 8N1 に設定
                 _serialPort.Parity = Parity.None;
