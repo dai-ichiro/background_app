@@ -13,18 +13,35 @@ namespace background_app
     {
         private SerialPort _serialPort;
         private Dictionary<string, List<ActionStep>> _keyConfig;
+        private string _logPath;
 
         public Form1()
         {
             InitializeComponent();
+            _logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
+            Log("Application Initializing...");
 
             // 1. プロパティでも設定可能ですが、念のためコードでも指定
             this.ShowInTaskbar = false;      // タスクバーに表示しない
             this.WindowState = FormWindowState.Minimized; // 最小化状態で起動
         }
 
+        private void Log(string message)
+        {
+            try
+            {
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                File.AppendAllText(_logPath, $"[{timestamp}] {message}{Environment.NewLine}");
+            }
+            catch
+            {
+                // Logging failed, ignore
+            }
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            Log("Application Closing...");
             CloseSerialPort();
             base.OnFormClosing(e);
         }
@@ -57,6 +74,8 @@ namespace background_app
                 string comportFilePath = Path.Combine(exePath, "comport.txt");
                 string portNumber = "";
 
+                Log($"Reading COM port from: {comportFilePath}");
+
                 if (File.Exists(comportFilePath))
                 {
                     string content = File.ReadAllText(comportFilePath).Trim();
@@ -69,10 +88,13 @@ namespace background_app
 
                 if (string.IsNullOrEmpty(portNumber))
                 {
+                    Log("COM port not specified or invalid.");
                     MessageBox.Show("COM portを指定して下さい", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     Application.Exit();
                     return;
                 }
+
+                Log($"Selected COM Port: COM{portNumber}");
 
                 LoadKeyConfig();
 
@@ -89,9 +111,11 @@ namespace background_app
 
                 // シリアルポートを開く
                 _serialPort.Open();
+                Log("Serial port opened successfully.");
             }
             catch (Exception ex)
             {
+                Log($"SetupSerialPort Error: {ex}");
                 string errorMessage = $"シリアルポートの初期化に失敗しました: {ex.Message}";
                 MessageBox.Show(errorMessage, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -107,13 +131,17 @@ namespace background_app
                 while (sp.BytesToRead > 0)
                 {
                     int data = sp.ReadByte();
+                    string dataStr = data.ToString();
+                    Log($"Received Byte: {data} (String: {dataStr})");
 
-                    if (_keyConfig != null && _keyConfig.ContainsKey(data.ToString()))
+                    if (_keyConfig != null && _keyConfig.ContainsKey(dataStr))
                     {
-                        foreach (var step in _keyConfig[data.ToString()])
+                        Log($"Found config for key: {dataStr}");
+                        foreach (var step in _keyConfig[dataStr])
                         {
                             if (step.Type == "key")
                             {
+                                Log($"Executing Key: {step.Value}");
                                 this.Invoke(new Action(() => SendKeys.SendWait(step.Value)));
                             }
                             else if (step.Type == "wait")
@@ -121,13 +149,19 @@ namespace background_app
                                 int ms;
                                 if (int.TryParse(step.Value, out ms))
                                 {
+                                    Log($"Waiting: {ms}ms");
                                     Thread.Sleep(ms);
+                                }
+                                else
+                                {
+                                    Log($"Invalid wait value: {step.Value}");
                                 }
                             }
                         }
                     }
                     else
                     {
+                        Log($"No config found for key: {dataStr}. Falling back.");
                         string commandName = GetCommandName(data);
 
                         // UI スレッドセーフに処理
@@ -135,11 +169,17 @@ namespace background_app
                         {
                             if (_keyConfig == null && data >= 1 && data <= 6)
                             {
+                                Log($"Legacy action: Ctrl+{data}");
                                 SendKeys.SendWait("^" + data);
                             }
                             else if (_keyConfig == null)
                             {
+                                Log($"Unknown command (Legacy): {data}");
                                 MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                            else
+                            {
+                                Log("Config present but key not defined. Doing nothing.");
                             }
                         }));
                     }
@@ -147,6 +187,7 @@ namespace background_app
             }
             catch (Exception ex)
             {
+                Log($"DataReceivedHandler Error: {ex}");
                 this.Invoke(new Action(() =>
                 {
                     MessageBox.Show($"データ受信エラー: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -210,6 +251,7 @@ namespace background_app
             {
                 string exePath = AppDomain.CurrentDomain.BaseDirectory;
                 string configPath = Path.Combine(exePath, "key_config.json");
+                Log($"Loading config from: {configPath}");
 
                 if (File.Exists(configPath))
                 {
@@ -217,11 +259,17 @@ namespace background_app
                     {
                         var serializer = new DataContractJsonSerializer(typeof(Dictionary<string, List<ActionStep>>));
                         _keyConfig = (Dictionary<string, List<ActionStep>>)serializer.ReadObject(fs);
+                        Log($"Config loaded successfully. Keys: {string.Join(", ", _keyConfig.Keys)}");
                     }
+                }
+                else
+                {
+                    Log("Config file not found.");
                 }
             }
             catch (Exception ex)
             {
+                Log($"LoadKeyConfig Error: {ex}");
                 MessageBox.Show($"設定ファイルの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
