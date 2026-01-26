@@ -122,14 +122,18 @@ namespace background_app
         {
             switch (command)
             {
-                case 20:
-                    return "10秒戻る";
-                case 21:
-                    return "10秒進む";
-                case 22:
-                    return "再生/停止";
-                case 23:
-                    return "フルスクリーン";
+                case 1:
+                    return "1が押された";
+                case 2:
+                    return "2が押された";
+                case 3:
+                    return "3が押された";
+                case 4:
+                    return "4が押された";
+                case 5:
+                    return "5が押された";
+                case 6:
+                    return "6が押された";
                 default:
                     return "不明なコマンド";
             }
