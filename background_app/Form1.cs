@@ -1,12 +1,24 @@
-﻿using System;
+using System;
 using System.IO;
 using System.IO.Ports;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace background_app
 {
     public partial class Form1 : Form
     {
+        [DllImport("user32.dll")]
+        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        private const int VK_F13 = 0x7C;
+        private const int VK_F14 = 0x7D;
+        private const int VK_F15 = 0x7E;
+        private const int VK_F16 = 0x7F;
+        private const int VK_F17 = 0x80;
+        private const int VK_F18 = 0x81;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+
         private SerialPort _serialPort;
 
         public Form1()
@@ -107,7 +119,10 @@ namespace background_app
                     {
                         if (data >= 1 && data <= 6)
                         {
-                            SendKeys.SendWait("^" + data);
+                            // F13(0x7C) to F18(0x81)
+                            byte vk = (byte)(VK_F13 + (data - 1));
+                            keybd_event(vk, 0, 0, UIntPtr.Zero);        // Key Down
+                            keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Key Up
                         }
                         else
                         {
@@ -130,17 +145,17 @@ namespace background_app
             switch (command)
             {
                 case 1:
-                    return "1が押された";
+                    return "F13が押された";
                 case 2:
-                    return "2が押された";
+                    return "F14が押された";
                 case 3:
-                    return "3が押された";
+                    return "F15が押された";
                 case 4:
-                    return "4が押された";
+                    return "F16が押された";
                 case 5:
-                    return "5が押された";
+                    return "F17が押された";
                 case 6:
-                    return "6が押された";
+                    return "F18が押された";
                 default:
                     return "不明なコマンド";
             }
