@@ -102,10 +102,17 @@ namespace background_app
                     int data = sp.ReadByte();
                     string commandName = GetCommandName(data);
 
-                    // UI スレッドセーフに MessageBox を表示
+                    // UI スレッドセーフに処理
                     this.Invoke(new Action(() =>
                     {
-                        MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        if (data >= 1 && data <= 6)
+                        {
+                            SendKeys.SendWait("^" + data);
+                        }
+                        else
+                        {
+                            MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
                     }));
                 }
             }
