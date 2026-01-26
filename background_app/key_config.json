@@ -1,22 +1,28 @@
 {
-  "1": [
-    {
-      "type": "key",
-      "value": "^m"
-    },
-    {
-      "type": "wait",
-      "value": "300"
-    },
-    {
-      "type": "key",
-      "value": "%g"
-    }
-  ],
-  "2": [
-    {
-      "type": "key",
-      "value": "^%m"
-    }
-  ]
+  "settings": {
+    "com_port": 3,
+    "logging_enabled": true
+  },
+  "actions": {
+    "1": [
+      {
+        "type": "key",
+        "value": "^m"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "%g"
+      }
+    ],
+    "2": [
+      {
+        "type": "key",
+        "value": "^%m"
+      }
+    ]
+  }
 }

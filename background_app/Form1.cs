@@ -12,14 +12,15 @@ namespace background_app
     public partial class Form1 : Form
     {
         private SerialPort _serialPort;
-        private Dictionary<string, List<ActionStep>> _keyConfig;
+        private AppConfig _config;
         private string _logPath;
 
         public Form1()
         {
             InitializeComponent();
             _logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
-            Log("Application Initializing...");
+            // Logging state is unknown yet, so we don't log until config is loaded or if we default to true temporarily.
+            // But user said "not necessarily needed", so default false.
 
             // 1. プロパティでも設定可能ですが、念のためコードでも指定
             this.ShowInTaskbar = false;      // タスクバーに表示しない
@@ -30,8 +31,11 @@ namespace background_app
         {
             try
             {
-                string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                File.AppendAllText(_logPath, $"[{timestamp}] {message}{Environment.NewLine}");
+                if (_config != null && _config.Settings != null && _config.Settings.LoggingEnabled)
+                {
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                    File.AppendAllText(_logPath, $"[{timestamp}] {message}{Environment.NewLine}");
+                }
             }
             catch
             {
@@ -60,6 +64,8 @@ namespace background_app
                 if (!_initialized)
                 {
                     _initialized = true;
+                    // Load config first to determine settings (logging, com port)
+                    LoadKeyConfig();
                     SetupSerialPort();
                 }
             }
@@ -70,14 +76,21 @@ namespace background_app
         {
             try
             {
+                Log("Starting SetupSerialPort...");
                 string exePath = AppDomain.CurrentDomain.BaseDirectory;
                 string comportFilePath = Path.Combine(exePath, "comport.txt");
                 string portNumber = "";
 
-                Log($"Reading COM port from: {comportFilePath}");
-
-                if (File.Exists(comportFilePath))
+                // Prioritize Config
+                if (_config != null && _config.Settings != null && _config.Settings.ComPort > 0)
                 {
+                    portNumber = _config.Settings.ComPort.ToString();
+                    Log($"Using COM port from config: {portNumber}");
+                }
+                // Fallback to comport.txt
+                else if (File.Exists(comportFilePath))
+                {
+                    Log($"Reading COM port from: {comportFilePath}");
                     string content = File.ReadAllText(comportFilePath).Trim();
                     int num;
                     if (int.TryParse(content, out num))
@@ -95,8 +108,6 @@ namespace background_app
                 }
 
                 Log($"Selected COM Port: COM{portNumber}");
-
-                LoadKeyConfig();
 
                 _serialPort = new SerialPort();
                 _serialPort.PortName = "COM" + portNumber;
@@ -134,10 +145,10 @@ namespace background_app
                     string dataStr = data.ToString();
                     Log($"Received Byte: {data} (String: {dataStr})");
 
-                    if (_keyConfig != null && _keyConfig.ContainsKey(dataStr))
+                    if (_config != null && _config.Actions != null && _config.Actions.ContainsKey(dataStr))
                     {
                         Log($"Found config for key: {dataStr}");
-                        foreach (var step in _keyConfig[dataStr])
+                        foreach (var step in _config.Actions[dataStr])
                         {
                             if (step.Type == "key")
                             {
@@ -167,12 +178,12 @@ namespace background_app
                         // UI スレッドセーフに処理
                         this.Invoke(new Action(() =>
                         {
-                            if (_keyConfig == null && data >= 1 && data <= 6)
+                            if ((_config == null || _config.Actions == null) && data >= 1 && data <= 6)
                             {
                                 Log($"Legacy action: Ctrl+{data}");
                                 SendKeys.SendWait("^" + data);
                             }
-                            else if (_keyConfig == null)
+                            else if (_config == null || _config.Actions == null)
                             {
                                 Log($"Unknown command (Legacy): {data}");
                                 MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -251,30 +262,48 @@ namespace background_app
             {
                 string exePath = AppDomain.CurrentDomain.BaseDirectory;
                 string configPath = Path.Combine(exePath, "key_config.json");
-                Log($"Loading config from: {configPath}");
+                // Cannot log here yet as config is not loaded.
 
                 if (File.Exists(configPath))
                 {
                     using (FileStream fs = new FileStream(configPath, FileMode.Open))
                     {
-                        var settings = new DataContractJsonSerializerSettings();
-                        settings.UseSimpleDictionaryFormat = true;
-                        var serializer = new DataContractJsonSerializer(typeof(Dictionary<string, List<ActionStep>>), settings);
-                        _keyConfig = (Dictionary<string, List<ActionStep>>)serializer.ReadObject(fs);
-                        Log($"Config loaded successfully. Keys: {string.Join(", ", _keyConfig.Keys)}");
+                        var serializer = new DataContractJsonSerializer(typeof(AppConfig));
+                        _config = (AppConfig)serializer.ReadObject(fs);
                     }
                 }
-                else
-                {
-                    Log("Config file not found.");
-                }
+
+                // Now config is loaded, log if enabled
+                Log($"Config loaded from: {configPath}");
             }
             catch (Exception ex)
             {
-                Log($"LoadKeyConfig Error: {ex}");
+                // Force log if error? No, if logging is disabled, don't log.
+                // But this is an error, maybe user wants to know.
+                // For now, respect the flag (which is null/false).
                 MessageBox.Show($"設定ファイルの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+    }
+
+    [DataContract]
+    public class AppConfig
+    {
+        [DataMember(Name = "settings")]
+        public AppSettings Settings { get; set; }
+
+        [DataMember(Name = "actions")]
+        public Dictionary<string, List<ActionStep>> Actions { get; set; }
+    }
+
+    [DataContract]
+    public class AppSettings
+    {
+        [DataMember(Name = "com_port")]
+        public int ComPort { get; set; }
+
+        [DataMember(Name = "logging_enabled")]
+        public bool LoggingEnabled { get; set; }
     }
 
     [DataContract]
