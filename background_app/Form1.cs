@@ -1,6 +1,10 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace background_app
@@ -8,6 +12,7 @@ namespace background_app
     public partial class Form1 : Form
     {
         private SerialPort _serialPort;
+        private Dictionary<string, List<ActionStep>> _keyConfig;
 
         public Form1()
         {
@@ -69,6 +74,8 @@ namespace background_app
                     return;
                 }
 
+                LoadKeyConfig();
+
                 _serialPort = new SerialPort();
                 _serialPort.PortName = "COM" + portNumber;
                 _serialPort.BaudRate = 9600;
@@ -100,20 +107,42 @@ namespace background_app
                 while (sp.BytesToRead > 0)
                 {
                     int data = sp.ReadByte();
-                    string commandName = GetCommandName(data);
 
-                    // UI スレッドセーフに処理
-                    this.Invoke(new Action(() =>
+                    if (_keyConfig != null && _keyConfig.ContainsKey(data.ToString()))
                     {
-                        if (data >= 1 && data <= 6)
+                        foreach (var step in _keyConfig[data.ToString()])
                         {
-                            SendKeys.SendWait("^" + data);
+                            if (step.Type == "key")
+                            {
+                                this.Invoke(new Action(() => SendKeys.SendWait(step.Value)));
+                            }
+                            else if (step.Type == "wait")
+                            {
+                                int ms;
+                                if (int.TryParse(step.Value, out ms))
+                                {
+                                    Thread.Sleep(ms);
+                                }
+                            }
                         }
-                        else
+                    }
+                    else
+                    {
+                        string commandName = GetCommandName(data);
+
+                        // UI スレッドセーフに処理
+                        this.Invoke(new Action(() =>
                         {
-                            MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                    }));
+                            if (_keyConfig == null && data >= 1 && data <= 6)
+                            {
+                                SendKeys.SendWait("^" + data);
+                            }
+                            else if (_keyConfig == null)
+                            {
+                                MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }));
+                    }
                 }
             }
             catch (Exception ex)
@@ -174,5 +203,37 @@ namespace background_app
                 System.Diagnostics.Debug.WriteLine($"シリアルポートのクローズエラー: {ex.Message}");
             }
         }
+
+        private void LoadKeyConfig()
+        {
+            try
+            {
+                string exePath = AppDomain.CurrentDomain.BaseDirectory;
+                string configPath = Path.Combine(exePath, "key_config.json");
+
+                if (File.Exists(configPath))
+                {
+                    using (FileStream fs = new FileStream(configPath, FileMode.Open))
+                    {
+                        var serializer = new DataContractJsonSerializer(typeof(Dictionary<string, List<ActionStep>>));
+                        _keyConfig = (Dictionary<string, List<ActionStep>>)serializer.ReadObject(fs);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"設定ファイルの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    [DataContract]
+    public class ActionStep
+    {
+        [DataMember(Name = "type")]
+        public string Type { get; set; }
+
+        [DataMember(Name = "value")]
+        public string Value { get; set; }
     }
 }

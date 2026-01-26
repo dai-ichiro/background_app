@@ -1,0 +1,22 @@
+{
+  "1": [
+    {
+      "type": "key",
+      "value": "^m"
+    },
+    {
+      "type": "wait",
+      "value": "300"
+    },
+    {
+      "type": "key",
+      "value": "%G"
+    }
+  ],
+  "2": [
+    {
+      "type": "key",
+      "value": "^%m"
+    }
+  ]
+}
