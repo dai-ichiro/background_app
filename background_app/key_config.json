@@ -7,7 +7,7 @@
     "1": [
       {
         "type": "key",
-        "value": "^m"
+        "value": "%"
       },
       {
         "type": "wait",
@@ -15,13 +15,125 @@
       },
       {
         "type": "key",
-        "value": "%g"
+        "value": "h"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "g"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "a"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "l"
       }
     ],
     "2": [
       {
         "type": "key",
-        "value": "^%m"
+        "value": "%"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "h"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "g"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "a"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "c"
+      }
+    ],
+    "3": [
+      {
+        "type": "key",
+        "value": "%"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "h"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "g"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "a"
+      },
+      {
+        "type": "wait",
+        "value": "300"
+      },
+      {
+        "type": "key",
+        "value": "r"
+      }
+    ],
+    "4": [
+      {
+        "type": "key",
+        "value": "^1"
+      }
+    ],
+    "5": [
+      {
+        "type": "key",
+        "value": "^2"
+      }
+    ],
+    "6": [
+      {
+        "type": "key",
+        "value": "^3"
       }
     ]
   }
