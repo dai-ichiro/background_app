@@ -65,7 +65,7 @@
     *   `"wait"`: 指定時間待機します。
 *   `value`:
     *   `type` が `"key"` の場合: 入力するキーを指定します。従来の SendKeys ではなく、より安定した SendInput API を使用します。キー名は `System.Windows.Forms.KeysConverter` で解析可能な一般的な英語名を使用します。
-        *   例: `Ctrl+C` (Ctrl+C), `Enter` (Enterキー), `Alt` (Altキー), `A` (Aキー)
+        *   例: `Ctrl+C` (Ctrl+C), `Enter` (Enterキー), `Alt` (Altキー), `A` (Aキー), `F13` (F13キー)
     *   `type` が `"wait"` の場合: 待機時間をミリ秒単位で指定します（整数）。
 
 
