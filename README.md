@@ -35,7 +35,7 @@
     "1": [                      // シリアルポートから受信したデータ（文字列）をキーとします
       {
         "type": "key",          // キー入力アクション
-        "value": "%"            // 入力するキー (SendKeys形式)
+        "value": "Alt"          // 入力するキー (例: Alt, Ctrl+C, A)
       },
       {
         "type": "wait",         // 待機アクション
@@ -43,7 +43,7 @@
       },
       {
         "type": "key",
-        "value": "h"
+        "value": "H"
       }
     ]
   }
@@ -64,8 +64,8 @@
     *   `"key"`: キーボード入力をシミュレートします。
     *   `"wait"`: 指定時間待機します。
 *   `value`:
-    *   `type` が `"key"` の場合: 入力するキーを指定します。特殊キー（EnterやCtrlなど）の指定方法は、Microsoftの [SendKeys クラス](https://learn.microsoft.com/ja-jp/dotnet/api/system.windows.forms.sendkeys.send?view=windowsdesktop-8.0) の仕様に準拠します。
-        *   例: `^c` (Ctrl+C), `{ENTER}` (Enterキー), `%` (Altキー)
+    *   `type` が `"key"` の場合: 入力するキーを指定します。従来の SendKeys ではなく、より安定した SendInput API を使用します。キー名は `System.Windows.Forms.KeysConverter` で解析可能な一般的な英語名を使用します。
+        *   例: `Ctrl+C` (Ctrl+C), `Enter` (Enterキー), `Alt` (Altキー), `A` (Aキー), `F13` (F13キー)
     *   `type` が `"wait"` の場合: 待機時間をミリ秒単位で指定します（整数）。
 
 

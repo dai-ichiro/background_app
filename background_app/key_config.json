@@ -7,7 +7,7 @@
     "1": [
       {
         "type": "key",
-        "value": "%"
+        "value": "Alt"
       },
       {
         "type": "wait",
@@ -15,7 +15,7 @@
       },
       {
         "type": "key",
-        "value": "h"
+        "value": "H"
       },
       {
         "type": "wait",
@@ -23,7 +23,7 @@
       },
       {
         "type": "key",
-        "value": "g"
+        "value": "G"
       },
       {
         "type": "wait",
@@ -31,7 +31,7 @@
       },
       {
         "type": "key",
-        "value": "a"
+        "value": "A"
       },
       {
         "type": "wait",
@@ -39,13 +39,13 @@
       },
       {
         "type": "key",
-        "value": "l"
+        "value": "L"
       }
     ],
     "2": [
       {
         "type": "key",
-        "value": "%"
+        "value": "Alt"
       },
       {
         "type": "wait",
@@ -53,7 +53,7 @@
       },
       {
         "type": "key",
-        "value": "h"
+        "value": "H"
       },
       {
         "type": "wait",
@@ -61,7 +61,7 @@
       },
       {
         "type": "key",
-        "value": "g"
+        "value": "G"
       },
       {
         "type": "wait",
@@ -69,7 +69,7 @@
       },
       {
         "type": "key",
-        "value": "a"
+        "value": "A"
       },
       {
         "type": "wait",
@@ -77,13 +77,13 @@
       },
       {
         "type": "key",
-        "value": "c"
+        "value": "C"
       }
     ],
     "3": [
       {
         "type": "key",
-        "value": "%"
+        "value": "Alt"
       },
       {
         "type": "wait",
@@ -91,7 +91,7 @@
       },
       {
         "type": "key",
-        "value": "h"
+        "value": "H"
       },
       {
         "type": "wait",
@@ -99,7 +99,7 @@
       },
       {
         "type": "key",
-        "value": "g"
+        "value": "G"
       },
       {
         "type": "wait",
@@ -107,7 +107,7 @@
       },
       {
         "type": "key",
-        "value": "a"
+        "value": "A"
       },
       {
         "type": "wait",
@@ -115,25 +115,25 @@
       },
       {
         "type": "key",
-        "value": "r"
+        "value": "R"
       }
     ],
     "4": [
       {
         "type": "key",
-        "value": "^1"
+        "value": "Ctrl+1"
       }
     ],
     "5": [
       {
         "type": "key",
-        "value": "^2"
+        "value": "Ctrl+2"
       }
     ],
     "6": [
       {
         "type": "key",
-        "value": "^3"
+        "value": "Ctrl+3"
       }
     ]
   }
