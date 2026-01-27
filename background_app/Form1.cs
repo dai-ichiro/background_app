@@ -77,8 +77,6 @@ namespace background_app
             try
             {
                 Log("Starting SetupSerialPort...");
-                string exePath = AppDomain.CurrentDomain.BaseDirectory;
-                string comportFilePath = Path.Combine(exePath, "comport.txt");
                 string portNumber = "";
 
                 // Prioritize Config
@@ -86,17 +84,6 @@ namespace background_app
                 {
                     portNumber = _config.Settings.ComPort.ToString();
                     Log($"Using COM port from config: {portNumber}");
-                }
-                // Fallback to comport.txt
-                else if (File.Exists(comportFilePath))
-                {
-                    Log($"Reading COM port from: {comportFilePath}");
-                    string content = File.ReadAllText(comportFilePath).Trim();
-                    int num;
-                    if (int.TryParse(content, out num))
-                    {
-                        portNumber = content;
-                    }
                 }
 
                 if (string.IsNullOrEmpty(portNumber))
