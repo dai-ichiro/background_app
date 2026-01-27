@@ -140,7 +140,7 @@ namespace background_app
                             if (step.Type == "key")
                             {
                                 Log($"Executing Key: {step.Value}");
-                                this.Invoke(new Action(() => SendKeys.SendWait(step.Value)));
+                                this.Invoke(new Action(() => InputSender.Send(step.Value)));
                             }
                             else if (step.Type == "wait")
                             {
