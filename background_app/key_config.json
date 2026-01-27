@@ -1,7 +1,7 @@
 {
   "settings": {
     "com_port": 3,
-    "logging_enabled": true
+    "logging_enabled": false
   },
   "actions": {
     "1": [
