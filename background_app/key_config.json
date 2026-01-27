@@ -1,7 +1,8 @@
 {
   "settings": {
     "com_port": 3,
-    "logging_enabled": false
+    "logging_enabled": false,
+    "key_hold_time": 50
   },
   "actions": {
     "1": [

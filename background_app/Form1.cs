@@ -140,7 +140,12 @@ namespace background_app
                             if (step.Type == "key")
                             {
                                 Log($"Executing Key: {step.Value}");
-                                this.Invoke(new Action(() => InputSender.Send(step.Value)));
+                                int holdTime = 0;
+                                if (_config.Settings != null)
+                                {
+                                    holdTime = _config.Settings.KeyHoldTime;
+                                }
+                                this.Invoke(new Action(() => InputSender.Send(step.Value, holdTime)));
                             }
                             else if (step.Type == "wait")
                             {
@@ -260,6 +265,9 @@ namespace background_app
 
         [DataMember(Name = "logging_enabled")]
         public bool LoggingEnabled { get; set; }
+
+        [DataMember(Name = "key_hold_time")]
+        public int KeyHoldTime { get; set; }
     }
 
     [DataContract]
