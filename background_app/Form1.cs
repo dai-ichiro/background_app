@@ -1,6 +1,10 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace background_app
@@ -8,18 +12,40 @@ namespace background_app
     public partial class Form1 : Form
     {
         private SerialPort _serialPort;
+        private AppConfig _config;
+        private string _logPath;
 
         public Form1()
         {
             InitializeComponent();
+            _logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
+            // Logging state is unknown yet, so we don't log until config is loaded or if we default to true temporarily.
+            // But user said "not necessarily needed", so default false.
 
             // 1. プロパティでも設定可能ですが、念のためコードでも指定
             this.ShowInTaskbar = false;      // タスクバーに表示しない
             this.WindowState = FormWindowState.Minimized; // 最小化状態で起動
         }
 
+        private void Log(string message)
+        {
+            try
+            {
+                if (_config != null && _config.Settings != null && _config.Settings.LoggingEnabled)
+                {
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                    File.AppendAllText(_logPath, $"[{timestamp}] {message}{Environment.NewLine}");
+                }
+            }
+            catch
+            {
+                // Logging failed, ignore
+            }
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            Log("Application Closing...");
             CloseSerialPort();
             base.OnFormClosing(e);
         }
@@ -38,6 +64,8 @@ namespace background_app
                 if (!_initialized)
                 {
                     _initialized = true;
+                    // Load config first to determine settings (logging, com port)
+                    LoadKeyConfig();
                     SetupSerialPort();
                 }
             }
@@ -48,12 +76,21 @@ namespace background_app
         {
             try
             {
+                Log("Starting SetupSerialPort...");
                 string exePath = AppDomain.CurrentDomain.BaseDirectory;
                 string comportFilePath = Path.Combine(exePath, "comport.txt");
                 string portNumber = "";
 
-                if (File.Exists(comportFilePath))
+                // Prioritize Config
+                if (_config != null && _config.Settings != null && _config.Settings.ComPort > 0)
                 {
+                    portNumber = _config.Settings.ComPort.ToString();
+                    Log($"Using COM port from config: {portNumber}");
+                }
+                // Fallback to comport.txt
+                else if (File.Exists(comportFilePath))
+                {
+                    Log($"Reading COM port from: {comportFilePath}");
                     string content = File.ReadAllText(comportFilePath).Trim();
                     int num;
                     if (int.TryParse(content, out num))
@@ -64,10 +101,13 @@ namespace background_app
 
                 if (string.IsNullOrEmpty(portNumber))
                 {
+                    Log("COM port not specified or invalid.");
                     MessageBox.Show("COM portを指定して下さい", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     Application.Exit();
                     return;
                 }
+
+                Log($"Selected COM Port: COM{portNumber}");
 
                 _serialPort = new SerialPort();
                 _serialPort.PortName = "COM" + portNumber;
@@ -82,9 +122,11 @@ namespace background_app
 
                 // シリアルポートを開く
                 _serialPort.Open();
+                Log("Serial port opened successfully.");
             }
             catch (Exception ex)
             {
+                Log($"SetupSerialPort Error: {ex}");
                 string errorMessage = $"シリアルポートの初期化に失敗しました: {ex.Message}";
                 MessageBox.Show(errorMessage, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -100,24 +142,63 @@ namespace background_app
                 while (sp.BytesToRead > 0)
                 {
                     int data = sp.ReadByte();
-                    string commandName = GetCommandName(data);
+                    string dataStr = data.ToString();
+                    Log($"Received Byte: {data} (String: {dataStr})");
 
-                    // UI スレッドセーフに処理
-                    this.Invoke(new Action(() =>
+                    if (_config != null && _config.Actions != null && _config.Actions.ContainsKey(dataStr))
                     {
-                        if (data >= 1 && data <= 6)
+                        Log($"Found config for key: {dataStr}");
+                        foreach (var step in _config.Actions[dataStr])
                         {
-                            SendKeys.SendWait("^" + data);
+                            if (step.Type == "key")
+                            {
+                                Log($"Executing Key: {step.Value}");
+                                this.Invoke(new Action(() => SendKeys.SendWait(step.Value)));
+                            }
+                            else if (step.Type == "wait")
+                            {
+                                int ms;
+                                if (int.TryParse(step.Value, out ms))
+                                {
+                                    Log($"Waiting: {ms}ms");
+                                    Thread.Sleep(ms);
+                                }
+                                else
+                                {
+                                    Log($"Invalid wait value: {step.Value}");
+                                }
+                            }
                         }
-                        else
+                    }
+                    else
+                    {
+                        Log($"No config found for key: {dataStr}. Falling back.");
+                        string commandName = GetCommandName(data);
+
+                        // UI スレッドセーフに処理
+                        this.Invoke(new Action(() =>
                         {
-                            MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                    }));
+                            if ((_config == null || _config.Actions == null) && data >= 1 && data <= 6)
+                            {
+                                Log($"Legacy action: Ctrl+{data}");
+                                SendKeys.SendWait("^" + data);
+                            }
+                            else if (_config == null || _config.Actions == null)
+                            {
+                                Log($"Unknown command (Legacy): {data}");
+                                MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                            else
+                            {
+                                Log("Config present but key not defined. Doing nothing.");
+                            }
+                        }));
+                    }
                 }
             }
             catch (Exception ex)
             {
+                Log($"DataReceivedHandler Error: {ex}");
                 this.Invoke(new Action(() =>
                 {
                     MessageBox.Show($"データ受信エラー: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -174,5 +255,74 @@ namespace background_app
                 System.Diagnostics.Debug.WriteLine($"シリアルポートのクローズエラー: {ex.Message}");
             }
         }
+
+        private void LoadKeyConfig()
+        {
+            try
+            {
+                string exePath = AppDomain.CurrentDomain.BaseDirectory;
+                string configPath = Path.Combine(exePath, "key_config.json");
+                // Cannot log here yet as config is not loaded.
+
+                if (File.Exists(configPath))
+                {
+                    using (FileStream fs = new FileStream(configPath, FileMode.Open))
+                    {
+                        var settings = new DataContractJsonSerializerSettings();
+                        settings.UseSimpleDictionaryFormat = true;
+                        var serializer = new DataContractJsonSerializer(typeof(AppConfig), settings);
+                        _config = (AppConfig)serializer.ReadObject(fs);
+                    }
+                }
+
+                // Now config is loaded, log if enabled
+                Log($"Config loaded from: {configPath}");
+                if (_config != null && _config.Actions != null)
+                {
+                    Log($"Loaded {_config.Actions.Count} actions. Keys: {string.Join(", ", _config.Actions.Keys)}");
+                }
+                else
+                {
+                    Log("Config loaded but Actions list is empty or null.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Force log if error? No, if logging is disabled, don't log.
+                // But this is an error, maybe user wants to know.
+                // For now, respect the flag (which is null/false).
+                MessageBox.Show($"設定ファイルの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    [DataContract]
+    public class AppConfig
+    {
+        [DataMember(Name = "settings")]
+        public AppSettings Settings { get; set; }
+
+        [DataMember(Name = "actions")]
+        public Dictionary<string, List<ActionStep>> Actions { get; set; }
+    }
+
+    [DataContract]
+    public class AppSettings
+    {
+        [DataMember(Name = "com_port")]
+        public int ComPort { get; set; }
+
+        [DataMember(Name = "logging_enabled")]
+        public bool LoggingEnabled { get; set; }
+    }
+
+    [DataContract]
+    public class ActionStep
+    {
+        [DataMember(Name = "type")]
+        public string Type { get; set; }
+
+        [DataMember(Name = "value")]
+        public string Value { get; set; }
     }
 }
