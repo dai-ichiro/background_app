@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace background_app
@@ -70,7 +71,7 @@ namespace background_app
             public ushort wParamH;
         }
 
-        public static void Send(string keyString)
+        public static void Send(string keyString, int holdTimeMs = 0)
         {
             if (string.IsNullOrEmpty(keyString)) return;
 
@@ -88,7 +89,8 @@ namespace background_app
                 return;
             }
 
-            List<INPUT> inputs = new List<INPUT>();
+            List<INPUT> downInputs = new List<INPUT>();
+            List<INPUT> upInputs = new List<INPUT>();
 
             // Extract modifiers
             bool shift = (key & Keys.Shift) == Keys.Shift;
@@ -99,9 +101,9 @@ namespace background_app
             Keys keyCode = key & Keys.KeyCode;
 
             // 1. Modifiers Down
-            if (shift) AddKeyInput(inputs, Keys.ShiftKey, false);
-            if (ctrl) AddKeyInput(inputs, Keys.ControlKey, false);
-            if (alt) AddKeyInput(inputs, Keys.Menu, false);
+            if (shift) AddKeyInput(downInputs, Keys.ShiftKey, false);
+            if (ctrl) AddKeyInput(downInputs, Keys.ControlKey, false);
+            if (alt) AddKeyInput(downInputs, Keys.Menu, false);
 
             // 2. Key Down & Up (if not just a modifier)
             // If keyCode is None, it means we only have modifiers (e.g. "Control")
@@ -140,18 +142,44 @@ namespace background_app
 
             if (keyCode != Keys.None)
             {
-                AddKeyInput(inputs, keyCode, false);
-                AddKeyInput(inputs, keyCode, true);
+                AddKeyInput(downInputs, keyCode, false); // Down
+                AddKeyInput(upInputs, keyCode, true);    // Up
             }
 
             // 3. Modifiers Up (Reverse order)
-            if (alt) AddKeyInput(inputs, Keys.Menu, true);
-            if (ctrl) AddKeyInput(inputs, Keys.ControlKey, true);
-            if (shift) AddKeyInput(inputs, Keys.ShiftKey, true);
+            if (alt) AddKeyInput(upInputs, Keys.Menu, true);
+            if (ctrl) AddKeyInput(upInputs, Keys.ControlKey, true);
+            if (shift) AddKeyInput(upInputs, Keys.ShiftKey, true);
 
-            if (inputs.Count > 0)
+            // Send inputs
+            if (holdTimeMs > 0)
             {
-                SendInput((uint)inputs.Count, inputs.ToArray(), INPUT.Size);
+                // Send Down events
+                if (downInputs.Count > 0)
+                {
+                    SendInput((uint)downInputs.Count, downInputs.ToArray(), INPUT.Size);
+                }
+
+                // Wait
+                Thread.Sleep(holdTimeMs);
+
+                // Send Up events
+                if (upInputs.Count > 0)
+                {
+                    SendInput((uint)upInputs.Count, upInputs.ToArray(), INPUT.Size);
+                }
+            }
+            else
+            {
+                // Combine and send immediately (legacy behavior)
+                List<INPUT> allInputs = new List<INPUT>();
+                allInputs.AddRange(downInputs);
+                allInputs.AddRange(upInputs);
+
+                if (allInputs.Count > 0)
+                {
+                    SendInput((uint)allInputs.Count, allInputs.ToArray(), INPUT.Size);
+                }
             }
         }
 
