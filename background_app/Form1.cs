@@ -268,13 +268,23 @@ namespace background_app
                 {
                     using (FileStream fs = new FileStream(configPath, FileMode.Open))
                     {
-                        var serializer = new DataContractJsonSerializer(typeof(AppConfig));
+                        var settings = new DataContractJsonSerializerSettings();
+                        settings.UseSimpleDictionaryFormat = true;
+                        var serializer = new DataContractJsonSerializer(typeof(AppConfig), settings);
                         _config = (AppConfig)serializer.ReadObject(fs);
                     }
                 }
 
                 // Now config is loaded, log if enabled
                 Log($"Config loaded from: {configPath}");
+                if (_config != null && _config.Actions != null)
+                {
+                    Log($"Loaded {_config.Actions.Count} actions. Keys: {string.Join(", ", _config.Actions.Keys)}");
+                }
+                else
+                {
+                    Log("Config loaded but Actions list is empty or null.");
+                }
             }
             catch (Exception ex)
             {
