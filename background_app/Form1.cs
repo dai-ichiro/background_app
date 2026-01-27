@@ -159,27 +159,7 @@ namespace background_app
                     }
                     else
                     {
-                        Log($"No config found for key: {dataStr}. Falling back.");
-                        string commandName = GetCommandName(data);
-
-                        // UI スレッドセーフに処理
-                        this.Invoke(new Action(() =>
-                        {
-                            if ((_config == null || _config.Actions == null) && data >= 1 && data <= 6)
-                            {
-                                Log($"Legacy action: Ctrl+{data}");
-                                SendKeys.SendWait("^" + data);
-                            }
-                            else if (_config == null || _config.Actions == null)
-                            {
-                                Log($"Unknown command (Legacy): {data}");
-                                MessageBox.Show($"コマンド: {data}\n{commandName}", "受信データ", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            }
-                            else
-                            {
-                                Log("Config present but key not defined. Doing nothing.");
-                            }
-                        }));
+                        Log($"No config found for key: {dataStr}. Doing nothing.");
                     }
                 }
             }
@@ -190,27 +170,6 @@ namespace background_app
                 {
                     MessageBox.Show($"データ受信エラー: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }));
-            }
-        }
-
-        private string GetCommandName(int command)
-        {
-            switch (command)
-            {
-                case 1:
-                    return "1が押された";
-                case 2:
-                    return "2が押された";
-                case 3:
-                    return "3が押された";
-                case 4:
-                    return "4が押された";
-                case 5:
-                    return "5が押された";
-                case 6:
-                    return "6が押された";
-                default:
-                    return "不明なコマンド";
             }
         }
 
